@@ -3,8 +3,8 @@ from __future__ import annotations
 from attrs import define
 from typing import TYPE_CHECKING
 
-from cloudshell.server_tech.handlers.rest_api_handler import ServerTechAPI
-from cloudshell.server_tech.helpers.errors import NotSupportedServerTechError
+from server_tech.handlers.rest_api_handler import ServerTechAPI
+from server_tech.helpers.errors import NotSupportedServerTechError
 
 if TYPE_CHECKING:
     from cloudshell.shell.standards.pdu.resource_config import RESTAPIPDUResourceConfig

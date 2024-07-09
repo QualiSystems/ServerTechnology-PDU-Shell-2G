@@ -19,12 +19,12 @@ node_types:
     properties:
       Web API Port:
         description: Port to use for REST API connection.
-        type: Numeric
+        type: integer
         default: 443
       Protocol Scheme:
         type: string
         default: "https"
-        description:
+        description: Switch protocol between HTTP or HTTPS
         constraints:
           - valid_values: [ http, https]
     capabilities:
@@ -46,15 +46,16 @@ node_types:
           Password:
             description: The password is required by some CLI protocols such as Telnet and is required according to the device configuration.
             type: cloudshell.datatypes.Password
-        Protocol Scheme:
-          type: string
-          default: "https"
-          description:
-          constraints:
-            - valid_values: [ http, https]
+          Protocol Scheme:
+            type: string
+            default: "https"
+            description:
+            constraints:
+              - valid_values: [ http, https]
           Web API Port:
             description: Port to use for REST API connection.
-            type: Numeric
+            default: 443
+            type: integer
     artifacts:
       icon:
         file: ServerTechnology.png

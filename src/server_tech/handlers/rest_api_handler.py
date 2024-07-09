@@ -12,7 +12,7 @@ import requests
 import urllib3
 
 
-from cloudshell.server_tech.helpers.errors import (
+from server_tech.helpers.errors import (
     BaseServerTechError,
     RESTAPIServerTechError,
 )

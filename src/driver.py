@@ -14,10 +14,10 @@ from cloudshell.shell.standards.pdu.autoload_model import PDUResourceModel
 from cloudshell.shell.standards.pdu.driver_interface import PDUResourceDriverInterface
 from cloudshell.shell.standards.pdu.resource_config import RESTAPIPDUResourceConfig
 
-from cloudshell.server_tech.flows.server_tech_autoload_flow import (
+from server_tech.flows.server_tech_autoload_flow import (
     ServerTechAutoloadFlow
 )
-from cloudshell.server_tech.flows.server_tech_state_flow import (
+from server_tech.flows.server_tech_state_flow import (
     ServerTechOutletsStateFlow
 )
 

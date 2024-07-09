@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from cloudshell.shell.flows.autoload.basic_flow import AbstractAutoloadFlow
-from cloudshell.server_tech.handlers.rest_api_handler import ServerTechAPI
+from server_tech.handlers.rest_api_handler import ServerTechAPI
 
 if TYPE_CHECKING:
     from cloudshell.shell.core.driver_context import AutoLoadDetails
