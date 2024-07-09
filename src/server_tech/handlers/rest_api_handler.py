@@ -2,19 +2,19 @@ from __future__ import annotations
 
 import logging
 import ssl
+import time
 from abc import abstractmethod
 from collections.abc import Callable
 
-from attrs import define, field
-from attrs.setters import frozen
-
 import requests
 import urllib3
-
+from attrs import define, field
+from attrs.setters import frozen
 
 from server_tech.helpers.errors import (
     BaseServerTechError,
     RESTAPIServerTechError,
+    RESTAPIUnavailableServerTechError,
 )
 
 logger = logging.getLogger(__name__)
@@ -127,76 +127,100 @@ class BaseAPIClient:
 @define
 class ServerTechAPI(BaseAPIClient):
     BASE_ERRORS = {
-        404: RESTAPIServerTechError,
+        404: RESTAPIUnavailableServerTechError,
         405: RESTAPIServerTechError,
         503: RESTAPIServerTechError,
     }
     """
     404 NOT FOUND Requested resource does not exist or is unavailable
     405 METHOD NOT ALLOWED Requested method was not permitted
-    503 SERVICE UNAVAILABLE The server is too busy to send the resource or resource collection
+    503 SERVICE UNAVAILABLE The server is too busy to send the resource or resource collection  # noqa E501
     """
 
+    class Decorators:
+        @classmethod
+        def get_data(
+            cls, retries: int = 6, timeout: int = 5, raise_on_timeout: bool = True
+        ):
+            def wrapper(decorated):
+                def inner(*args, **kwargs):
+                    exception = None
+                    attempt = 0
+                    while attempt < retries:
+                        try:
+                            response = decorated(*args, **kwargs)
+                            if response:
+                                return response.json()
+                            else:
+                                return response
+                        except RESTAPIUnavailableServerTechError as e:
+                            exception = e
+                            time.sleep(timeout)
+                            attempt += 1
+
+                    if raise_on_timeout:
+                        if exception:
+                            raise exception
+                        else:
+                            raise RESTAPIServerTechError(
+                                f"Cannot execute request for {retries * timeout} sec."
+                            )
+
+                return inner
+
+            return wrapper
+
     def _base_url(self):
-        # return f"{self.scheme}://{self.address}/jaws"
         return f"{self.scheme}://{self.address}:{self.port}/jaws"
 
-    def get_pdu_info(self) -> dict[str, str]:
-        """Get information about outlets."""
-        pdu_info = {}
+    @Decorators.get_data()
+    def get_pdu_units_info(self) -> requests.Response:
+        """Get information about PDU units."""
         error_map = {}
 
         units_data = self._do_get(
-            path=f"config/info/units",
-            http_error_map={**self.BASE_ERRORS, **error_map}
-        ).json()
+            path="config/info/units", http_error_map={**self.BASE_ERRORS, **error_map}
+        )
 
-        for unit in units_data:
-            pdu_info.update(
-                {
-                    "model": unit.get("model_number", ""),
-                    "serial": unit.get("product_serial_number", ""),
-                }
-            )
+        return units_data
+
+    @Decorators.get_data()
+    def get_pdu_system_info(self) -> requests.Response:
+        """Get basic information about PDU."""
+        error_map = {}
 
         system_data = self._do_get(
-            path=f"config/info/system",
-            http_error_map={**self.BASE_ERRORS, **error_map}
-        ).json()
-        pdu_info.update({"fw": system_data.get("firmware", "")})
-        return pdu_info
+            path="config/info/system", http_error_map={**self.BASE_ERRORS, **error_map}
+        )
 
-    def get_outlets(self) -> dict[str, str]:
+        return system_data
+
+    @Decorators.get_data()
+    def get_outlets(self) -> requests.Response:
         """Get information about outlets."""
         error_map = {}
-        outlets_info = {}
 
-        response = self._do_get(
-            path=f"control/outlets",
-            http_error_map={**self.BASE_ERRORS, **error_map}
+        outlets_info = self._do_get(
+            path="control/outlets", http_error_map={**self.BASE_ERRORS, **error_map}
         )
-        for data in response.json():
-            outlets_info.update({data["id"]: data["control_state"]})
 
         return outlets_info
 
-    def set_outlet_state(self, outlet_id: str, outlet_state: str) -> None:
+    @Decorators.get_data()
+    def set_outlet_state(self, outlet_id: str, outlet_state: str) -> requests.Response:
         """Set outlet state.
 
         Possible outlet states could be on/off/reboot.
         """
-        error_map = {
-            400: RESTAPIServerTechError,
-            409: RESTAPIServerTechError
-        }
+        error_map = {400: RESTAPIServerTechError, 409: RESTAPIServerTechError}
         """
-        400 BAD REQUEST Malformed patch document; a required patch object member is missing OR an unsupported operation was included.
+        400 BAD REQUEST Malformed patch document; a required patch object member is missing OR an unsupported operation was included.  # noqa E501
         409 CONFLICT Property specified for updating does not exist in resource
         """
-        self._do_patch(
+        return self._do_patch(
             path=f"control/outlets/{outlet_id}",
             json={"control_action": outlet_state},
-            http_error_map={**self.BASE_ERRORS, **error_map}
+            http_error_map={**self.BASE_ERRORS, **error_map},
         )
 
 
@@ -217,7 +241,7 @@ PATCH
 
 POST
 201 CREATED Resource created successfully.
-400 BAD REQUEST Message contained either bad values (e.g. out of range) for properties, or non-existent properties
+400 BAD REQUEST Message contained either bad values (e.g. out of range) for properties, or non-existent properties  # noqa E501
 404 NOT FOUND Requested resource collection does not exist or is unavailable
 405 METHOD NOT ALLOWED Requested method was not permitted
 409 CONFLICT Requested resource already exists

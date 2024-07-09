@@ -4,12 +4,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from cloudshell.shell.flows.autoload.basic_flow import AbstractAutoloadFlow
-from server_tech.handlers.rest_api_handler import ServerTechAPI
 
 if TYPE_CHECKING:
     from cloudshell.shell.core.driver_context import AutoLoadDetails
-    from cloudshell.shell.standards.pdu.resource_config import RESTAPIPDUResourceConfig
     from cloudshell.shell.standards.pdu.autoload_model import PDUResourceModel
+
+    from server_tech.handlers.server_tech_handler import ServerTechHandler
 
 
 logger = logging.getLogger(__name__)
@@ -18,29 +18,19 @@ logger = logging.getLogger(__name__)
 class ServerTechAutoloadFlow(AbstractAutoloadFlow):
     """Autoload flow."""
 
-    def __init__(self, config: RESTAPIPDUResourceConfig):
+    def __init__(self, si: ServerTechHandler):
         super().__init__()
-        self.config = config
+        self._si = si
 
     def _autoload_flow(
-        self,
-        supported_os: list[str],
-        resource_model: PDUResourceModel
+        self, supported_os: list[str], resource_model: PDUResourceModel
     ) -> AutoLoadDetails:
         """Autoload Flow."""
         logger.info("*" * 70)
         logger.info("Start discovery process .....")
 
-        api = ServerTechAPI(
-                address=self.config.address,
-                username=self.config.api_user,
-                password=self.config.api_password,
-                port=self.config.api_port or None,
-                scheme=self.config.api_scheme or None,
-            )
-
-        outlets_info = api.get_outlets()
-        pdu_info = api.get_pdu_info()
+        outlets_info = self._si.get_outlets_info()
+        pdu_info = self._si.get_pdu_info()
 
         resource_model.vendor = "Server Technology"
         resource_model.model = pdu_info.get("model", "")

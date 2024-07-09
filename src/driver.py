@@ -14,12 +14,9 @@ from cloudshell.shell.standards.pdu.autoload_model import PDUResourceModel
 from cloudshell.shell.standards.pdu.driver_interface import PDUResourceDriverInterface
 from cloudshell.shell.standards.pdu.resource_config import RESTAPIPDUResourceConfig
 
-from server_tech.flows.server_tech_autoload_flow import (
-    ServerTechAutoloadFlow
-)
-from server_tech.flows.server_tech_state_flow import (
-    ServerTechOutletsStateFlow
-)
+from server_tech.flows.server_tech_autoload_flow import ServerTechAutoloadFlow
+from server_tech.flows.server_tech_state_flow import ServerTechOutletsStateFlow
+from server_tech.handlers.server_tech_handler import ServerTechHandler
 
 
 class ServerTechnologyShellDriver(ResourceDriverInterface, PDUResourceDriverInterface):
@@ -30,8 +27,6 @@ class ServerTechnologyShellDriver(ResourceDriverInterface, PDUResourceDriverInte
         self._cli = None
 
     def initialize(self, context: InitCommandContext) -> str:
-        # api = CloudShellSessionContext(context).get_api()
-        # resource_config = RESTAPIPDUResourceConfig.from_context(context, api)
         return "Finished initializing"
 
     @GlobalLock.lock
@@ -46,23 +41,23 @@ class ServerTechnologyShellDriver(ResourceDriverInterface, PDUResourceDriverInte
         resource.add_sub_resource('1', p1)
         return resource.create_autoload_details()
         """
-
         with LoggingSessionContext(context) as logger:
             api = CloudShellSessionContext(context).get_api()
             resource_config = RESTAPIPDUResourceConfig.from_context(context, api)
 
             resource_model = PDUResourceModel.from_resource_config(resource_config)
-            autoload_operations = ServerTechAutoloadFlow(config=resource_config)
-            logger.info("Autoload started")
-            response = autoload_operations.discover(self.SUPPORTED_OS, resource_model)
-            logger.info("Autoload completed")
-            return response
+
+            with ServerTechHandler.from_config(resource_config) as si:
+                autoload_operations = ServerTechAutoloadFlow(si=si)
+                logger.info("Autoload started")
+                response = autoload_operations.discover(
+                    self.SUPPORTED_OS, resource_model
+                )
+                logger.info("Autoload completed")
+                return response
 
     def _change_power_state(
-            self,
-            context: ResourceCommandContext,
-            ports: list[str],
-            state: str
+        self, context: ResourceCommandContext, ports: list[str], state: str
     ) -> None:  # noqa E501
         """Set power outlets state based on provided data."""
         with LoggingSessionContext(context) as logger:
@@ -70,13 +65,14 @@ class ServerTechnologyShellDriver(ResourceDriverInterface, PDUResourceDriverInte
 
             resource_config = RESTAPIPDUResourceConfig.from_context(context, api)
 
-            outlets_operations = ServerTechOutletsStateFlow(config=resource_config)
-            logger.info(f"Power {state.capitalize()} operation started")
-            outlets_operations.set_outlets_state(
-                ports=ports,
-                state=state,
-            )
-            logger.info(f"Power {state.capitalize()} operation completed")
+            with ServerTechHandler.from_config(resource_config) as si:
+                outlets_operations = ServerTechOutletsStateFlow(si=si)
+                logger.info(f"Power {state.capitalize()} operation started")
+                outlets_operations.set_outlets_state(
+                    ports=ports,
+                    state=state,
+                )
+                logger.info(f"Power {state.capitalize()} operation completed")
 
     def PowerOn(self, context: ResourceCommandContext, ports: list[str]) -> None:
         """Set power state as ON to provided outlets."""
@@ -87,10 +83,7 @@ class ServerTechnologyShellDriver(ResourceDriverInterface, PDUResourceDriverInte
         self._change_power_state(context=context, ports=ports, state="off")
 
     def PowerCycle(
-        self,
-        context: ResourceCommandContext,
-        ports: list[str],
-        delay: str
+        self, context: ResourceCommandContext, ports: list[str], delay: str
     ) -> None:  # noqa E501
         """Set power state as CYCLE to provided outlets."""
         self._change_power_state(context=context, ports=ports, state="reboot")

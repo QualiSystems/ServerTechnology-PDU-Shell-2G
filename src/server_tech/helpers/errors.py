@@ -11,3 +11,7 @@ class NotSupportedServerTechError(BaseServerTechError):
 
 class RESTAPIServerTechError(BaseServerTechError):
     """Server Technology REST API base error."""
+
+
+class RESTAPIUnavailableServerTechError(BaseServerTechError):
+    """Server Technology REST API unavailable."""

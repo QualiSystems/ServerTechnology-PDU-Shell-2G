@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from attrs import define
 from typing import TYPE_CHECKING
 
-from server_tech.handlers.rest_api_handler import ServerTechAPI
+from attrs import define
+
 from server_tech.helpers.errors import NotSupportedServerTechError
 
 if TYPE_CHECKING:
-    from cloudshell.shell.standards.pdu.resource_config import RESTAPIPDUResourceConfig
+    from server_tech.handlers.server_tech_handler import ServerTechHandler
 
 
 @define
 class ServerTechOutletsStateFlow:
-    config: RESTAPIPDUResourceConfig
+    _si: ServerTechHandler
 
     AVAILABLE_STATES = ["on", "off", "reboot"]
 
@@ -33,13 +33,5 @@ class ServerTechOutletsStateFlow:
 
         outlets = ServerTechOutletsStateFlow._ports_to_outlet_ids(ports=ports)
 
-        api = ServerTechAPI(
-                address=self.config.address,
-                username=self.config.api_user,
-                password=self.config.api_password,
-                port=self.config.api_port or None,
-                scheme=self.config.api_scheme or None,
-            )
-
         for outlet_id in outlets:
-            api.set_outlet_state(outlet_id=outlet_id, outlet_state=state)
+            self._si.set_outlet_state(outlet_id=outlet_id, outlet_state=state)
