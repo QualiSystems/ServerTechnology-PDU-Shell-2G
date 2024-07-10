@@ -149,7 +149,7 @@ class ServerTechAPI(BaseAPIClient):
                     while attempt < retries:
                         try:
                             response = decorated(*args, **kwargs)
-                            if response:
+                            if response.text:
                                 return response.json()
                             else:
                                 return response
