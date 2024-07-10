@@ -1,0 +1,65 @@
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+metadata:
+  template_name: Server Technology PDU Shell 2G
+  template_author: Quali
+  template_version: 1.0.0
+  template_icon: ServerTechnology.png
+
+description: >
+   This Shell supports Server Technology PDU devices
+
+imports:
+  - cloudshell_standard: cloudshell_pdu_standard_2_0_1.yaml
+
+node_types:
+
+  vendor.switch.Server Technology PDU 2G:
+    derived_from: cloudshell.nodes.PDU
+    properties:
+      Web API Port:
+        description: Port to use for REST API connection.
+        type: integer
+        default: 443
+      Protocol Scheme:
+        type: string
+        default: "https"
+        description: Switch protocol between HTTP or HTTPS
+        constraints:
+          - valid_values: [ http, https]
+    capabilities:
+      auto_discovery_capability:
+        type: cloudshell.capabilities.AutoDiscovery
+        properties:        
+          enable_auto_discovery:
+            type: boolean
+            default: true
+          auto_discovery_description:
+            type: string
+            default: Describe the auto discovery
+          inventory_description:
+            type: string
+            default: Describe the resource shell template
+          User:
+            description: User with administrative privileges
+            type: string
+          Password:
+            description: The password is required by some CLI protocols such as Telnet and is required according to the device configuration.
+            type: cloudshell.datatypes.Password
+          Protocol Scheme:
+            type: string
+            default: "https"
+            description:
+            constraints:
+              - valid_values: [ http, https]
+          Web API Port:
+            description: Port to use for REST API connection.
+            default: 443
+            type: integer
+    artifacts:
+      icon:
+        file: ServerTechnology.png
+        type: tosca.artifacts.File
+      driver:
+        file: ServerTechnologyShell2GDriver.zip
+        type: tosca.artifacts.File

@@ -1,0 +1,3 @@
+cloudshell-shell-core~=6.0
+cloudshell-shell-flows~=3.0
+cloudshell-shell-pdu-standard~=1.0
